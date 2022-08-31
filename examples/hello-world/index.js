@@ -48,6 +48,12 @@ async function main() {
   console.log();
 
   // Let's fetch all our Warehouses and then print out their names:
-  // TODO:
+  const resWh = await api.get('/warehouse'); // TODO: error handling
+  const warehouses = resWh.data.data;
+  console.log('* Your warehouses:');
+  for (const wh of warehouses) {
+    console.log('    Name: ', wh.name);
+  }
+  console.log();
 }
 main();
