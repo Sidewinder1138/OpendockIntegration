@@ -3,7 +3,7 @@ const axios = require('axios');
 const io = require('socket.io-client');
 
 const NeutronURL = 'https://neutron-staging.opendock.com';
-const SubspaceURL = 'wss://subspace.opendock.com/socket.io/';
+const SubspaceURL = 'wss://subspace-staging.opendock.com';
 
 async function main() {
   const args = process.argv.slice(2);
@@ -61,12 +61,24 @@ async function main() {
     console.log('connect=', socket.connected);
   })
 
+  socket.on('disconnect', () => {
+    console.log('disconnect=', socket.disconnect);
+  })
+
+  socket.on('reconnect_attempt', () => {
+    console.log('reconnect_attempt=', socket.disconnect);
+  })
+
   socket.io.on('error', (error) => {
     console.log('Error!', error);
   });
 
   socket.on('ping', () => {
     console.log('ping!');
+  });
+
+  socket.on('pong', () => {
+    console.log('pong!');
   });
 
   socket.on('heartbeat', (thing) => {
@@ -77,9 +89,9 @@ async function main() {
     console.log('appt update:', data);
   });
 
-  while (true) {
-    console.log(socket);
-  }
+  // while (true) {
+  //   console.log(socket);
+  // }
 
 
 }
