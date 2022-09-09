@@ -2,8 +2,8 @@
 const axios = require('axios');
 const io = require('socket.io-client');
 
-const NeutronURL = 'https://neutron-staging.opendock.com';
-const SubspaceURL = 'wss://subspace-staging.opendock.com';
+const NeutronURL = 'https://neutron.opendock.com';
+const SubspaceURL = 'wss://subspace.opendock.com';
 
 async function main() {
   const args = process.argv.slice(2);
@@ -19,20 +19,21 @@ async function main() {
   console.log('---------------------------------------------------');
   console.log(`  --> Base url: ${NeutronURL}`);
   console.log();
-  
+
   const api = axios.create({
     baseURL: NeutronURL,
   });
-  
+
   // First we login via REST api using our user's email/pwd:
   const resLogin = await api.post('/auth/login', {  //TODO: error handling
     email: userEmail,
     password: userPassword
   });
+
   const accessToken = resLogin.data.access_token;
   console.log(`* Logged in user "${userEmail}", got access token="${accessToken.slice(0, 10)}..."`);
   console.log();
-  
+
   // We can now set our access token into the "Authorization" HTTP header (as a bearer token), which
   // will allow us to gain access to the API endpoints that require authentication:
   api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
@@ -50,7 +51,7 @@ async function main() {
   console.log('url=', url);
 
   // It's important to set the desired transport mechanism to 'websocket':
-  const socket = io(url, { transports: ['websocket'] });  
+  const socket = io(url, { transports: ['websocket'] });
   console.log(io.protocol);
 
   socket.on('connect_error', (error) => {
@@ -85,6 +86,10 @@ async function main() {
     console.log('heartbeat=', thing);
   });
 
+  socket.on('create-Appointment', (data) => {
+    console.log('appt create:', data);
+  });
+
   socket.on('update-Appointment', (data) => {
     console.log('appt update:', data);
   });
@@ -92,7 +97,6 @@ async function main() {
   // while (true) {
   //   console.log(socket);
   // }
-
 
 }
 main();
