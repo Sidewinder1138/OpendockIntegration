@@ -90,8 +90,23 @@ async function main() {
     console.log('appt create:', data);
   });
 
-  socket.on('update-Appointment', (data) => {
+  socket.on('update-Appointment', async (data) => {
     console.log('appt update:', data);
+
+    const appt = data;
+    const notes = appt.notes;
+    console.log('notes=', notes);
+    if (appt.notes.includes('magic')) {
+      console.log("Found some magic, updating appt...");
+      const res = await api.patch(`/appointment/${appt.id}`, {
+        tags: [
+          'integration!'
+        ],
+        notes: ''
+      });
+      console.log("Updated appt:", res);
+    }
+
   });
 
   // while (true) {
