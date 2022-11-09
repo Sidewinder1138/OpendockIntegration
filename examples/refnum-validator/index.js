@@ -33,13 +33,18 @@ async function main() {
   // create/update hook call from Opendock. This is the one and only endpoint we need
   // in order to implement the RefNumber Validation Protocol.
   app.post("/v2/validate", (req, res) => {
+    const debug = false;
+
     // The incoming POST body will be a JSON object containing the Appointment
     // "context", which is all the relevant data about the pending appointment that
     // is about to be created (or existing appointment that is about to be updated).
     // Note that we are using the express.json() body parser (see above), to the req.body
     // is already a JSON object at this point:
     const ctx = req.body;
-
+    if (debug) {
+      console.log('ctx=', JSON.stringify(ctx, null, 2));
+    }
+    
     // We can always read the Reference Number from the appointmentFields object:
     const refNumber = ctx.appointmentFields.refNumber;
     console.log("* Got Ref Number:", refNumber);
@@ -56,16 +61,38 @@ async function main() {
     }
 
     // Play with the start date/time:
-    //console.log('ctx=', ctx);
     const startStr = ctx.action === 'create' ? ctx.appointmentFields.start : ctx.existingAppointment.start;
-    console.log('startStr=', startStr);
-    const start = DateTime.fromISO(startStr);
+    const start = DateTime.fromISO(startStr).setZone('America/Phoenix');
     console.log('start=', start.toLocaleString(DateTime.DATETIME_FULL));
-
+    // Don't allow appointments that start at 10:00 AM (America/Phoenix):
     if (start.hour == 10 && start.minute == 0) {
       return res.status(500).json({
         errorMessage: "Appointments at 10:00 AM are not allowed, choose another time."
       })
+    }
+
+    // Play with custom fields:
+    const customFields = ctx.appointmentFields.customFields || ctx.existingAppointment?.customFields;
+    console.log('customFields=', customFields);
+    // Grab out pallet count:
+    let count = null;
+    for (const field of customFields) {
+      if (field.label === 'Pallet Count') {
+        count = Number(field.value)
+        break;
+      }
+    }
+    if (count !== null) {
+      if (count > 26) {
+        return res.status(500).json({
+          errorMessage: `Pallet count of ${count} is too high (max 26).`
+        })
+      }
+      if (count < 5) {
+        return res.status(500).json({
+          errorMessage: `Pallet count of ${count} is too low (min 5).`
+        })
+      }
     }
 
     // RefNum is good! So we just reply with an HTTP success code:
