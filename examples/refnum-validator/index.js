@@ -6,6 +6,7 @@
 //
 import express from "express";
 import morgan from "morgan";
+import { DateTime } from "luxon";
 
 const AppTitle = "RefNum Validator Example";
 let PORT = 8080;
@@ -49,10 +50,22 @@ async function main() {
       // We reply with an HTTP error code, and also send back a JSON object containing a custom
       // error message, which will be displayed in the Opendock UI to our user, to help them
       // correct the mistake:
-      res.status(500).json({
+      return res.status(500).json({
         errorMessage: "Reference Number must start with 'ABC'",
       });
-      return;
+    }
+
+    // Play with the start date/time:
+    //console.log('ctx=', ctx);
+    const startStr = ctx.action === 'create' ? ctx.appointmentFields.start : ctx.existingAppointment.start;
+    console.log('startStr=', startStr);
+    const start = DateTime.fromISO(startStr);
+    console.log('start=', start.toLocaleString(DateTime.DATETIME_FULL));
+
+    if (start.hour == 10 && start.minute == 0) {
+      return res.status(500).json({
+        errorMessage: "Appointments at 10:00 AM are not allowed, choose another time."
+      })
     }
 
     // RefNum is good! So we just reply with an HTTP success code:
