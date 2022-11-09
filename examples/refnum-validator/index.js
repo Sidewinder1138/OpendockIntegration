@@ -8,10 +8,14 @@ import express from "express";
 import morgan from "morgan";
 
 const AppTitle = "RefNum Validator Example";
-const PORT = 8080;
+let PORT = 8080;
 
 async function main() {
   console.log(AppTitle);
+
+  if (process.argv.length === 3) {
+    PORT = Number(process.argv[2])
+  }
 
   const app = express();
   app.use(express.json()); // JSON body parsing
