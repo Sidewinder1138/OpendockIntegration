@@ -78,6 +78,18 @@ async function main() {
         }
       }
 
+      // Do not allow commas (",") since for our validator example we expect multiple POs to
+      // be space separated:
+      if (refNumber.includes(",")) {
+        // We reply with an HTTP error code, and also send back a JSON object containing a custom
+        // error message, which will be displayed in the Opendock UI to our user, to help them
+        // correct the mistake:
+        return res.status(500).json({
+          errorMessage:
+            "Multiple PO numbers must be space delimited (commas not allowed).",
+        });
+      }
+
       // There could be multiple reference numbers (space separated) so lets break them up
       // and store all reference numbers in an array, so we can process them all:
       let refNumbers = [refNumber];
@@ -92,9 +104,18 @@ async function main() {
       function checkRefNum(refNum) {
         // Here we enforce a rule that ensures all refnums start with the characters 'ABC':
         if (!refNum.startsWith("ABC")) {
-          const errMsg = `Reference Number '${refNum}' incorrect: must start with 'ABC'.`;
-          console.log("* FAIL:", errMsg);
-          errorMessages.push(errMsg);
+          errorMessages.push(
+            `PO '${refNum}' incorrect: must start with 'ABC'.`
+          );
+        }
+
+        // Here we are arbitrarily just blocking certain refnums, to simulate the idea
+        // that some are just not valid POs (in a real validator you would of course be looking
+        // up in some other system/database to see if a refnum is valid)
+        if (["ABC9999", "ABC8888"].includes(refNum)) {
+          errorMessages.push(
+            `PO '${refNum}' incorrect: not recognized as a valid PO.`
+          );
         }
       }
 
@@ -103,9 +124,8 @@ async function main() {
       }
 
       if (errorMessages.length > 0) {
-        // We reply with an HTTP error code, and also send back a JSON object containing a custom
-        // error message, which will be displayed in the Opendock UI to our user, to help them
-        // correct the mistake:
+        console.log("* FAILURE:", errorMessages);
+
         return res.status(500).json({
           errorMessage: errorMessages.join(" "),
         });
