@@ -33,7 +33,7 @@ async function main() {
   // create/update hook call from Opendock. This is the one and only endpoint we need
   // in order to implement the RefNumber Validation Protocol.
   app.post("/v2/validate", (req, res) => {
-    const debug = false;
+    const debug = true;
 
     // The incoming POST body will be a JSON object containing the Appointment
     // "context", which is all the relevant data about the pending appointment that
@@ -53,6 +53,11 @@ async function main() {
     if (ctx.action === "update" && !refNumber) {
       refNumber = ctx.existingAppointment.refNumber;
     }
+
+    // Fetch the Load Type information via REST API using the ID from the appointment context:
+    // TODO: this gets messy, because now we need an account credentials to utilize REST API...
+    //let loadTypeId = ctx.appointmentFields.loadTypeId;
+    //console.log("loadTypeId=", loadTypeId);
 
     if (refNumber) {
       console.log("* Got Ref Number:", refNumber);
@@ -116,6 +121,30 @@ async function main() {
           errorMessages.push(
             `PO '${refNum}' incorrect: not recognized as a valid PO.`
           );
+        }
+
+        // Here we simulate "ready by date", where for a certain PO number we don't allow
+        // appointments to be created before a certain date. In a real validator you would have
+        // to fetch this information from an external system.
+        if (refNum === "ABC7654") {
+          // For this PO number, we are going to say that it cannot be picked up before
+          // 3 days after "now":
+          const now = DateTime.now();
+          const readyByDate = now.plus({ days: 3 });
+          console.log("now=", formatDT(now));
+          console.log("readyByDate=", formatDT(readyByDate));
+
+          // TODO: handle "update" case!
+          let startStr = ctx.appointmentFields.start;
+          const start = DateTime.fromISO(startStr);
+
+          if (start < readyByDate) {
+            errorMessages.push(
+              `PO '${refNum}': not ready until ${formatDT(
+                readyByDate
+              )}, please choose a different start date/time.`
+            );
+          }
         }
       }
 
@@ -182,3 +211,7 @@ async function main() {
   });
 }
 main();
+
+function formatDT(dt) {
+  return dt.toLocaleString(DateTime.DATETIME_FULL);
+}
