@@ -78,14 +78,36 @@ async function main() {
         }
       }
 
-      // Here we enforce a rule that ensures all refnums start with the characters 'ABC':
-      if (!refNumber.startsWith("ABC")) {
-        console.log('* RefNum Bad: must start with "ABC"');
+      // There could be multiple reference numbers (space separated) so lets break them up
+      // and store all reference numbers in an array, so we can process them all:
+      let refNumbers = [refNumber];
+      if (refNumber.includes(" ")) {
+        const tokens = refNumber.split(" ");
+        refNumbers = tokens;
+      }
+      console.log("refNumbers=", refNumbers);
+
+      let errorMessages = [];
+
+      function checkRefNum(refNum) {
+        // Here we enforce a rule that ensures all refnums start with the characters 'ABC':
+        if (!refNum.startsWith("ABC")) {
+          const errMsg = `Reference Number '${refNum}' incorrect: must start with 'ABC'.`;
+          console.log("* FAIL:", errMsg);
+          errorMessages.push(errMsg);
+        }
+      }
+
+      for (const refNum of refNumbers) {
+        checkRefNum(refNum);
+      }
+
+      if (errorMessages.length > 0) {
         // We reply with an HTTP error code, and also send back a JSON object containing a custom
         // error message, which will be displayed in the Opendock UI to our user, to help them
         // correct the mistake:
         return res.status(500).json({
-          errorMessage: "Reference Number must start with 'ABC'",
+          errorMessage: errorMessages.join(" "),
         });
       }
     }
