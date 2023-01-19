@@ -33,7 +33,7 @@ async function main() {
   // create/update hook call from Opendock. This is the one and only endpoint we need
   // in order to implement the RefNumber Validation Protocol.
   app.post("/v2/validate", (req, res) => {
-    const debug = true;
+    const debug = false;
 
     // The incoming POST body will be a JSON object containing the Appointment
     // "context", which is all the relevant data about the pending appointment that
