@@ -54,6 +54,11 @@ async function main() {
       refNumber = ctx.existingAppointment.refNumber;
     }
 
+    // Fetch the Load Type information via REST API using the ID from the appointment context:
+    // TODO: this gets messy, because now we need an account credentials to utilize REST API...
+    //let loadTypeId = ctx.appointmentFields.loadTypeId;
+    //console.log("loadTypeId=", loadTypeId);
+
     if (refNumber) {
       console.log("* Got Ref Number:", refNumber);
 
@@ -78,14 +83,80 @@ async function main() {
         }
       }
 
-      // Here we enforce a rule that ensures all refnums start with the characters 'ABC':
-      if (!refNumber.startsWith("ABC")) {
-        console.log('* RefNum Bad: must start with "ABC"');
+      // Do not allow commas (",") since for our validator example we expect multiple POs to
+      // be space separated:
+      if (refNumber.includes(",")) {
         // We reply with an HTTP error code, and also send back a JSON object containing a custom
         // error message, which will be displayed in the Opendock UI to our user, to help them
         // correct the mistake:
         return res.status(500).json({
-          errorMessage: "Reference Number must start with 'ABC'",
+          errorMessage:
+            "Multiple PO numbers must be space delimited (commas not allowed).",
+        });
+      }
+
+      // There could be multiple reference numbers (space separated) so lets break them up
+      // and store all reference numbers in an array, so we can process them all:
+      let refNumbers = [refNumber];
+      if (refNumber.includes(" ")) {
+        const tokens = refNumber.split(" ");
+        refNumbers = tokens;
+      }
+      console.log("refNumbers=", refNumbers);
+
+      let errorMessages = [];
+
+      function checkRefNum(refNum) {
+        // Here we enforce a rule that ensures all refnums start with the characters 'ABC':
+        if (!refNum.startsWith("ABC")) {
+          errorMessages.push(
+            `PO '${refNum}' incorrect: must start with 'ABC'.`
+          );
+        }
+
+        // Here we are arbitrarily just blocking certain refnums, to simulate the idea
+        // that some are just not valid POs (in a real validator you would of course be looking
+        // up in some other system/database to see if a refnum is valid)
+        if (["ABC9999", "ABC8888"].includes(refNum)) {
+          errorMessages.push(
+            `PO '${refNum}' incorrect: not recognized as a valid PO.`
+          );
+        }
+
+        // Here we simulate "ready by date", where for a certain PO number we don't allow
+        // appointments to be created before a certain date. In a real validator you would have
+        // to fetch this information from an external system.
+        if (refNum === "ABC7654") {
+          // For this PO number, we are going to say that it cannot be picked up before
+          // 3 days after "now":
+          const now = DateTime.now();
+          const readyByDate = now.plus({ days: 3 });
+          console.log("now=", formatDT(now));
+          console.log("readyByDate=", formatDT(readyByDate));
+
+          // TODO: handle "update" case!
+          let startStr = ctx.appointmentFields.start;
+          const start = DateTime.fromISO(startStr);
+
+          if (start < readyByDate) {
+            errorMessages.push(
+              `PO '${refNum}': not ready until ${formatDT(
+                readyByDate
+              )}, please choose a different start date/time.`
+            );
+          }
+        }
+      }
+
+      for (const refNum of refNumbers) {
+        checkRefNum(refNum);
+      }
+
+      if (errorMessages.length > 0) {
+        console.log("* FAILURE:", errorMessages);
+
+        return res.status(500).json({
+          errorMessage: errorMessages.join(" "),
         });
       }
     }
@@ -140,3 +211,7 @@ async function main() {
   });
 }
 main();
+
+function formatDT(dt) {
+  return dt.toLocaleString(DateTime.DATETIME_FULL);
+}
