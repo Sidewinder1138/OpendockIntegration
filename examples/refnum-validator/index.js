@@ -179,25 +179,28 @@ async function main() {
       ctx.appointmentFields.customFields ||
       ctx.existingAppointment?.customFields;
     console.log("customFields=", customFields);
-    // Grab out pallet count:
-    let palletCount = null;
-    for (const field of customFields) {
-      if (field.label === "Pallet Count") {
-        palletCount = Number(field.value);
-        break;
+    if (customFields) {
+      // Grab out pallet count:
+      let palletCount = null;
+      for (const field of customFields) {
+        if (field.label === "Pallet Count") {
+          palletCount = Number(field.value);
+          break;
+        }
       }
-    }
-    // Enforce pallet count rules (but ignore if the field hasn't been configured):
-    if (palletCount !== null) {
-      if (palletCount > 26) {
-        return res.status(500).json({
-          errorMessage: `Pallet count of ${palletCount} is too high (max 26).`,
-        });
-      }
-      if (palletCount < 5) {
-        return res.status(500).json({
-          errorMessage: `Pallet count of ${palletCount} is too low (min 5).`,
-        });
+
+      // Enforce pallet count rules (but ignore if the field hasn't been configured):
+      if (palletCount !== null) {
+        if (palletCount > 26) {
+          return res.status(500).json({
+            errorMessage: `Pallet count of ${palletCount} is too high (max 26).`,
+          });
+        }
+        if (palletCount < 5) {
+          return res.status(500).json({
+            errorMessage: `Pallet count of ${palletCount} is too low (min 5).`,
+          });
+        }
       }
     }
 
